@@ -52,7 +52,7 @@ jobs:
         VERSION: v${{ github.run_number }}
       run: |
         echo "Pushing Docker image: NOMEAPLICACAO:${VERSION} in repository of project ${{ secrets.PROJECT_ID }}"
-        docker push REGION-docker.pkg.dev/${{ secrets.PROJECT_ID }}/ENVIRONMENT/NOMEAPLICACAO:${VERSION}
+        docker push REGION-docker.pkg.dev/${{ secrets.PROJECT_ID }}/REPOSITORIO/NOMEAPLICACAO:${VERSION}
 
   deploy:
     name: Deploy
@@ -129,7 +129,7 @@ jobs:
         kubectl rollout status deployment/simple-node-app --insecure-skip-tls-verify=true --timeout=5m
 
         # Atualiza a imagem apenas depois que o Deployment estiver pronto
-        kubectl set image deployment/simple-node-app simple-node-app=REGION-docker.pkg.dev/${{ secrets.PROJECT_ID }}/ENVIRONMENT/NOMEAPLICACAO:${VERSION} --insecure-skip-tls-verify=true
+        kubectl set image deployment/simple-node-app simple-node-app=REGION-docker.pkg.dev/${{ secrets.PROJECT_ID }}/REPOSITORIO/NOMEAPLICACAO:${VERSION} --insecure-skip-tls-verify=true
 
         # Aguarda a conclusão da atualização da imagem
         kubectl rollout status deployment/simple-node-app --insecure-skip-tls-verify=true --timeout=5m
