@@ -1,0 +1,135 @@
+name: Deploy
+on: 
+  workflow_dispatch: #quando ele vai rodar (manual)
+#on: 
+  #push: #quando ele vai rodar
+    #branches:
+      #- main #branch que ele vai rodar
+  #workflow_dispatch: #permite executar manualmente
+
+jobs:
+  build_push:
+    name: Build - Push
+    runs-on: ubuntu-latest #vai rodar numa máquina ubuntu próprio do github
+    defaults:
+      run:
+        shell: bash #tipo de shell que vai correr o workflow na máquina
+    steps:
+    - name: Checkout #precisa dele em todos os steps (é padrão)
+      uses: actions/checkout@v3 #padrão do github
+
+    # Configurar o Google Cloud CLI
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+    # Configurar o projeto da GCP
+    - name: Set GCP Project
+      run: gcloud config set project ${{ secrets.PROJECT_ID }}
+
+    # Configurar o docker para o artifact registry
+    - name: Artifact Registry
+      run: gcloud auth configure-docker REGION-docker.pkg.dev -q
+    
+    # Faz o build da imagem docker
+    - name: Build
+      env:
+        VERSION: v${{ github.run_number }}
+      run: |
+        echo "Building Docker image with tag: NOMEAPLICACAO:${VERSION}"
+        docker build . --file Dockerfile --tag NOMEAPLICACAO:${VERSION}
+    
+    # Faz a criação da tag para o Artifact Registry
+    - name: Tag
+      env:
+        VERSION: v${{ github.run_number }}
+      run: docker tag NOMEAPLICACAO:${VERSION} REGION-docker.pkg.dev/${{ secrets.PROJECT_ID }}/REPOSITORIO/NOMEAPLICACAO:${VERSION}
+
+    # Faz o push da imagem buildada para o Artifact Registry
+    - name: Push
+      env:
+        VERSION: v${{ github.run_number }}
+      run: |
+        echo "Pushing Docker image: NOMEAPLICACAO:${VERSION} in repository of project ${{ secrets.PROJECT_ID }}"
+        docker push REGION-docker.pkg.dev/${{ secrets.PROJECT_ID }}/ENVIRONMENT/NOMEAPLICACAO:${VERSION}
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest #vai rodar numa máquina ubuntu próprio do github
+    needs: build_push #deixa o job deploy dependente do job build_push
+    defaults:
+      run:
+        shell: bash #tipo de shell que vai correr o workflow na máquina
+    steps:
+    - name: Checkout #precisa dele em todos os steps (é padrão)
+      uses: actions/checkout@v3 #padrão do github
+
+    # Configurar o Google Cloud CLI
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+    # Configurar o projeto da GCP
+    - name: Set GCP Project
+      run: gcloud config set project ${{ secrets.PROJECT_ID }}
+
+    # Criar o arquivo kubeconfig a partir do secret
+    - name: Set up kubeconfig
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBECONFIG_SECRET }}" > $HOME/.kube/config
+        chown $(id -u):$(id -g) $HOME/.kube/config
+
+    # Testar comunicação
+    - name: Test connection to Kubernetes
+      run: kubectl cluster-info --insecure-skip-tls-verify=true
+
+    # Criar a secret do artifact registry
+    - name: Create secret to Artifact Registry
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+      run: |
+        # Criar arquivo temporário com a chave JSON
+        echo "$GOOGLE_APPLICATION_CREDENTIALS" > /tmp/key.json
+  
+        # Verificar se o secret já existe
+        kubectl get secret artifact-secret --ignore-not-found=true --insecure-skip-tls-verify=true
+  
+        # Criar o secret no Kubernetes apenas se ele não existir
+        if [ $? -eq 0 ]; then
+        echo "Secret artifact-secret já existe. Nenhuma ação necessária."
+          else
+        echo "Secret artifact-secret não encontrado. Criando o secret..."
+        
+        # Criar o secret no Kubernetes apenas se ele não existir
+        kubectl create secret docker-registry artifact-secret \
+          --docker-server=REGION-docker.pkg.dev \
+          --docker-username=_json_key \
+          --docker-password="$(cat /tmp/key.json)" \
+          --docker-email=SAEMAIL \
+          --insecure-skip-tls-verify=true
+        fi
+  
+        # Remover o arquivo temporário por segurança
+        rm /tmp/key.json
+
+    # Faz o deploy da imagem no kubernetes
+    - name: Deploy
+      env:
+        VERSION: v${{ github.run_number }}
+      run: |
+        echo "Deploying Docker image: NOMEAPLICACAO:${VERSION}"
+        
+        # Aplica o Deployment
+        kubectl apply -f k8s/deployment-k8s.yaml --insecure-skip-tls-verify=true
+
+        # Aguarda a conclusão do Deployment
+        kubectl rollout status deployment/simple-node-app --insecure-skip-tls-verify=true --timeout=5m
+
+        # Atualiza a imagem apenas depois que o Deployment estiver pronto
+        kubectl set image deployment/simple-node-app simple-node-app=REGION-docker.pkg.dev/${{ secrets.PROJECT_ID }}/ENVIRONMENT/NOMEAPLICACAO:${VERSION} --insecure-skip-tls-verify=true
+
+        # Aguarda a conclusão da atualização da imagem
+        kubectl rollout status deployment/simple-node-app --insecure-skip-tls-verify=true --timeout=5m
