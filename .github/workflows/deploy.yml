@@ -118,18 +118,17 @@ jobs:
     # Faz o deploy da imagem no kubernetes
     - name: Deploy
       env:
+        DOCKER_IMAGE: REGION-docker.pkg.dev/${{ secrets.PROJECT_ID }}/REPOSITORIO/NOMEAPLICACAO:v${{ github.run_number }}
         VERSION: v${{ github.run_number }}
       run: |
-        echo "Deploying Docker image: NOMEAPLICACAO:${VERSION}"
+        echo "Version of image: v${{ github.run_number }}"
+        echo "Deploying Docker image: $DOCKER_IMAGE"
+        
+        # Substitui o placeholder DOCKER_IMAGE no arquivo de deployment
+        sed -i "s|DOCKER_IMAGE|$DOCKER_IMAGE|g" k8s/deployment-k8s.yaml
         
         # Aplica o Deployment
         kubectl apply -f k8s/deployment-k8s.yaml --insecure-skip-tls-verify=true
 
         # Aguarda a conclusão do Deployment
-        kubectl rollout status deployment/simple-node-app --insecure-skip-tls-verify=true --timeout=5m
-
-        # Atualiza a imagem apenas depois que o Deployment estiver pronto
-        kubectl set image deployment/simple-node-app simple-node-app=REGION-docker.pkg.dev/${{ secrets.PROJECT_ID }}/REPOSITORIO/NOMEAPLICACAO:${VERSION} --insecure-skip-tls-verify=true
-
-        # Aguarda a conclusão da atualização da imagem
         kubectl rollout status deployment/simple-node-app --insecure-skip-tls-verify=true --timeout=5m
