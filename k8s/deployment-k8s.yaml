@@ -24,7 +24,9 @@ spec:
       - name: artifact-secret
       containers:
       - name: simple-node-app
-        image: node:latest # Atualize caso use um registro de container
+        #image: node:latest # Atualize caso use um registro de container
+        image: DOCKER_IMAGE
+        imagePullSecrets: Always
         ports:
         - containerPort: 5000
         envFrom:
