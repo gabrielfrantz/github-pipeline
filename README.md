@@ -28,7 +28,7 @@ Este repositório contém uma pipeline configurada no GitHub Actions para realiz
 4. Defina o tipo de local como **região**.
 5. Mantenha o restante das opções como padrão, exceto a verificação de vulnerabilidades, que deve ser desativada.
 
-![image](https://github.com/user-attachments/assets/f7fb06ef-e003-4455-a521-6f0e76a5fb8f)
+![image](https://github.com/user-attachments/assets/2089f7cb-e97a-42cd-abe3-b4d8234a864e)
 
 ### Ajustar o Arquivo do Workflow
 1. Altere `NOMEAPLICACAO` para o nome desejado para sua aplicação.
