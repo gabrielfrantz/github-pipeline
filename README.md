@@ -48,7 +48,8 @@ Este repositório contém uma pipeline configurada no GitHub Actions para realiz
      kubectl get pods
      ```
 
-![image](https://github.com/user-attachments/assets/bc86eeb1-8473-4678-8fdb-26c2abd41dd0)
+![image](https://github.com/user-attachments/assets/a75cb0b1-50a1-4b2a-930c-a902c80d08ba)
+
 ![image](https://github.com/user-attachments/assets/9c5f6261-4790-4fd0-bc3d-25708d94b60a)
 
 
