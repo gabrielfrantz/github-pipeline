@@ -49,7 +49,11 @@ Este repositório contém uma pipeline configurada no GitHub Actions para realiz
      ```
 
 ![image](https://github.com/user-attachments/assets/bc86eeb1-8473-4678-8fdb-26c2abd41dd0)
+![image](https://github.com/user-attachments/assets/9c5f6261-4790-4fd0-bc3d-25708d94b60a)
+
 
 ---
 
-## Prontinho, agora você já deve ter uma aplicação automatizada com essa pipeline
+## Prontinho, agora você já deve ter uma aplicação automatizada com essa pipeline acessando pelo IP público do Node da Pod mais a porta do service (NodePort), conforme exemplo abaixo
+
+![image](https://github.com/user-attachments/assets/43bc66be-e3dd-42f2-83c1-3bc070e02a47)
